@@ -1,19 +1,12 @@
-UPCASH v1.5.0
+UPCASH v1.6.0
 
-Como publicar no GitHub Pages:
-1. Extraia este ZIP.
-2. Entre na pasta upcash_mobile_app.
-3. Envie o conteúdo da pasta para a raiz do repositório no GitHub:
-   - index.html
-   - manifest.webmanifest
-   - sw.js
-   - version.json
-   - icons/
-   - LEIA-ME.txt
-4. Faça Commit changes.
-5. Abra o site com ?v=1.5.0 no final.
+Controle financeiro inteligente com login local, IA offline e entrada por voz.
 
-Login local:
-- Crie um usuário com PIN de 4 números.
-- Cada usuário tem dados separados neste celular/navegador.
-- Não usa Supabase, nuvem ou servidor.
+Arquivos para GitHub Pages:
+- index.html
+- manifest.webmanifest
+- sw.js
+- version.json
+- icons/
+
+A voz funciona melhor no Chrome/Edge Android com o site em HTTPS.

@@ -1,13 +1,13 @@
 {
-  "version": "1.5.0",
+  "version": "1.6.0",
   "updatedAt": "2026-06-26",
-  "notes": "Rebrand para Upcash, remoção da nuvem/Supabase e login local por usuário com dados separados no aparelho.",
+  "notes": "IA de lançamento melhorada com detecção de parcelas por texto e entrada por voz no navegador.",
   "features": [
     "upcash-brand",
     "local-login",
-    "local-users",
-    "logout",
-    "separated-user-data",
-    "no-cloud"
+    "ai-voice",
+    "better-installments",
+    "speech-to-text",
+    "local-data"
   ]
 }

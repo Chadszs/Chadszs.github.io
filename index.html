@@ -1057,6 +1057,13 @@ const __enhancedNeonvaultState = { pinUnlocked:false, onboardingShown:false };
     .calendar-day.today{outline:1px solid rgba(108,242,255,.42);box-shadow:0 0 0 2px rgba(108,242,255,.06)}
     .calendar-day .dots{margin-top:auto;display:flex;gap:3px;flex-wrap:wrap}
     .calendar-day .dotx{width:6px;height:6px;border-radius:50%;display:block}
+    .calendar-day.clickable{cursor:pointer;transition:.16s ease;user-select:none}
+    .calendar-day.clickable:hover,.calendar-day.clickable:active{border-color:rgba(108,242,255,.55);background:rgba(108,242,255,.08);transform:translateY(-1px)}
+    .calendar-day.has-tx:after{content:'';position:absolute;right:6px;top:6px;width:5px;height:5px;border-radius:50%;background:var(--verde-principal);box-shadow:0 0 10px rgba(108,242,255,.45)}
+    .day-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+    .day-summary-item{padding:10px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(108,242,255,.08);text-align:center}
+    .day-summary-item span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--texto-secundario);font-weight:900;margin-bottom:5px}
+    .day-summary-item strong{font-size:13px;white-space:nowrap}
     .goal-row{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.02);border:1px solid rgba(108,242,255,.08)}
     .goal-row + .goal-row{margin-top:10px}
     .goal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -1190,9 +1197,49 @@ function renderMiniCalendar(month=data.currentMonth){
     if(tx.some(x=>x.type==='receita')) dots.push('<span class="dotx" style="background:#49F3B0"></span>');
     if(tx.some(x=>x.type==='despesa' && x.subtype!=='aporte')) dots.push('<span class="dotx" style="background:#FF5D8F"></span>');
     if(tx.some(x=>x.subtype==='aporte')) dots.push('<span class="dotx" style="background:#FFB347"></span>');
-    cells += `<div class="calendar-day ${date===currentDate()?'today':''}"><span>${d}</span><div class="dots">${dots.join('')}</div></div>`;
+    cells += `<button type="button" class="calendar-day clickable ${tx.length?'has-tx':''} ${date===currentDate()?'today':''}" data-calendar-date="${date}" aria-label="Ver lançamentos de ${brDateFull(date)}"><span>${d}</span><div class="dots">${dots.join('')}</div></button>`;
   }
   return `<div class="calendar-grid">${labels.map(l=>`<div class="calendar-head">${l}</div>`).join('')}${cells}</div>`;
+}
+function bindCalendarDays(){
+  document.querySelectorAll('[data-calendar-date]').forEach(btn=>btn.onclick=()=>showCalendarDay(btn.dataset.calendarDate));
+}
+function showCalendarDay(date){
+  const dayTx = data.transactions.filter(x=>x.date===date).sort((a,b)=>{
+    const order = {receita:0, despesa:1};
+    return (order[a.type]??2)-(order[b.type]??2) || a.description.localeCompare(b.description);
+  });
+  const dayIncome = sum(dayTx.filter(x=>x.type==='receita'));
+  const dayExpense = sum(dayTx.filter(x=>x.type==='despesa' && (x.subtype==='fixa'||x.subtype==='variavel')));
+  const dayAporte = sum(dayTx.filter(x=>x.subtype==='aporte'));
+  openModal(`<h2>${brDateFull(date)}</h2><p class="sub">Lançamentos do dia selecionado.</p>
+    <div class="day-summary-grid">
+      <div class="day-summary-item"><span>Receitas</span><strong class="income">${money(dayIncome,{sign:dayIncome?'pos':undefined})}</strong></div>
+      <div class="day-summary-item"><span>Despesas</span><strong class="expense">${money(dayExpense,{sign:dayExpense?'neg':undefined})}</strong></div>
+      <div class="day-summary-item"><span>Aportes</span><strong class="invest">${money(dayAporte)}</strong></div>
+    </div>
+    ${txList(dayTx,'Nenhum lançamento neste dia.')}
+    <div class="small-actions">
+      <button class="btn primary small" id="dayAddExpense">+ Despesa</button>
+      <button class="btn ghost small" id="dayAddIncome">+ Receita</button>
+      <button class="btn ghost small" id="dayAddAporte">+ Aporte</button>
+    </div>`);
+  bindEditButtons();
+  document.getElementById('dayAddExpense').onclick=()=>openTransactionOnDate(date,'despesa','variavel');
+  document.getElementById('dayAddIncome').onclick=()=>openTransactionOnDate(date,'receita',null);
+  document.getElementById('dayAddAporte').onclick=()=>openAporteOnDate(date);
+}
+function openTransactionOnDate(date,type,subtype){
+  closeModal();
+  showTransactionModal(type, subtype);
+  const input=document.getElementById('txDate');
+  if(input){ input.value=date; input.dispatchEvent(new Event('input',{bubbles:true})); }
+}
+function openAporteOnDate(date){
+  closeModal();
+  showAporteModal();
+  const input=document.getElementById('apDate');
+  if(input){ input.value=date; input.dispatchEvent(new Event('input',{bubbles:true})); }
 }
 function renderGoalVaults(){
   const list = data.vaultGoals || [];
@@ -1305,6 +1352,7 @@ function enhanceOverview(){
   document.querySelectorAll('[data-edit-goal]').forEach(b=>b.onclick=()=>showGoalModal(data.vaultGoals.find(g=>g.id===b.dataset.editGoal)));
   document.querySelectorAll('[data-del-goal]').forEach(b=>b.onclick=()=>{ const g=data.vaultGoals.find(x=>x.id===b.dataset.delGoal); if(g && confirm(`Excluir o cofre ${g.name}?`)){ data.vaultGoals=data.vaultGoals.filter(x=>x.id!==g.id); save(); render(); toast('Cofre removido'); } });
   document.getElementById('exportSummaryPdf').onclick=exportMonthlyPdf;
+  bindCalendarDays();
   setTimeout(()=>drawLine('freeBalanceLine', freeBalanceSeries(), 'freeTip'),0);
 }
 function enhanceBudget(){

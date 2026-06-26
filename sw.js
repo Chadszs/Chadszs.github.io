@@ -1,4 +1,4 @@
-const CACHE_NAME = 'neonvault-mobile-v4';
+const CACHE_NAME = 'neonvault-mobile-v7';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));

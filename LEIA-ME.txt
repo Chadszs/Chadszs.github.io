@@ -1,16 +1,19 @@
-NEONVAULT — App de celular (PWA)
+UPCASH v1.5.0
 
-1) Hospede esta pasta em um site HTTPS (GitHub Pages, Netlify, Vercel etc.).
-2) Abra o link no celular.
-3) Android/Chrome: toque em Instalar ou no menu ⋮ > Adicionar à tela inicial.
-4) iPhone/Safari: toque em Compartilhar > Adicionar à Tela de Início.
+Como publicar no GitHub Pages:
+1. Extraia este ZIP.
+2. Entre na pasta upcash_mobile_app.
+3. Envie o conteúdo da pasta para a raiz do repositório no GitHub:
+   - index.html
+   - manifest.webmanifest
+   - sw.js
+   - version.json
+   - icons/
+   - LEIA-ME.txt
+4. Faça Commit changes.
+5. Abra o site com ?v=1.5.0 no final.
 
-Atualização automática:
-- O app verifica o arquivo version.json ao abrir.
-- Quando houver versão nova, ele limpa o cache antigo e recarrega sozinho.
-- Também existe botão manual em Configurações > Atualização do app.
-
-O app salva automaticamente no armazenamento local do aparelho/navegador.
-Use Configurações > Backup para exportar seus dados JSON antes de trocar de celular, limpar cache ou reinstalar.
-
-Versão 1.1.1: calendário clicável com fallback por toque/clique.
+Login local:
+- Crie um usuário com PIN de 4 números.
+- Cada usuário tem dados separados neste celular/navegador.
+- Não usa Supabase, nuvem ou servidor.

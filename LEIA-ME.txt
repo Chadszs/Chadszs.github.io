@@ -1,9 +1,16 @@
 NEONVAULT — App de celular (PWA)
 
-1) Hospede esta pasta em um site HTTPS (Netlify, Vercel, GitHub Pages etc.).
+1) Hospede esta pasta em um site HTTPS (GitHub Pages, Netlify, Vercel etc.).
 2) Abra o link no celular.
 3) Android/Chrome: toque em Instalar ou no menu ⋮ > Adicionar à tela inicial.
 4) iPhone/Safari: toque em Compartilhar > Adicionar à Tela de Início.
 
+Atualização automática:
+- O app verifica o arquivo version.json ao abrir.
+- Quando houver versão nova, ele limpa o cache antigo e recarrega sozinho.
+- Também existe botão manual em Configurações > Atualização do app.
+
 O app salva automaticamente no armazenamento local do aparelho/navegador.
 Use Configurações > Backup para exportar seus dados JSON antes de trocar de celular, limpar cache ou reinstalar.
+
+Versão 1.1.1: calendário clicável com fallback por toque/clique.

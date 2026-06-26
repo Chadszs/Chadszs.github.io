@@ -165,6 +165,8 @@ const toastWrap = document.getElementById('toastWrap');
 const saveIndicator = document.getElementById('saveIndicator');
 let deferredInstallPrompt = null;
 let saveIndicatorTimer = null;
+const APP_VERSION = '1.1.1';
+const VERSION_KEY = 'neonvault_installed_version';
 
 const storage = {
   get(key){
@@ -233,6 +235,7 @@ function demoData(){
   ];
   return {
     version:3,
+    appVersion:'1.1.0',
     currentMonth,
     darkMode:true,
     visualTheme:'black',
@@ -264,6 +267,7 @@ function loadData(){
 }
 function migrate(d){
   d.version = d.version || 2;
+  d.appVersion = d.appVersion || '1.1.0';
   d.currentMonth = d.currentMonth || '2026-06';
   d.visualTheme = d.visualTheme || 'black';
   d.coupleMode = d.coupleMode || {enabled:false,name1:'Você',name2:'Parceiro(a)'};
@@ -281,6 +285,7 @@ function migrate(d){
   d.patrimonioHistory = d.patrimonioHistory || [];
 }
 function save(){
+  data.appVersion = APP_VERSION;
   data.darkMode = document.body.classList.contains('dark');
   storage.set(KEY,data);
   storage.rawSet(DARK_KEY, data.darkMode ? 'true':'false');
@@ -712,7 +717,8 @@ function deletePatItem(cat,id){
 function renderSettings(){
   app.innerHTML = `<div class="back-head"><button class="btn ghost small" id="backBtn">← Voltar</button><h1>Configurações</h1></div>
     <div class="card settings-section"><h2>Aparência</h2><div class="small-note">Escolha entre um visual preto mais limpo ou o estilo neon.</div><div class="theme-picker"><button class="theme-option ${data.visualTheme==='black'?'active':''}" data-theme-option="black"><div class="theme-preview preview-black"></div><strong>Preto</strong><span>Visual limpo e discreto</span></button><button class="theme-option ${data.visualTheme==='neon'?'active':''}" data-theme-option="neon"><div class="theme-preview preview-neon"></div><strong>Neon</strong><span>Visual vibrante cyberpunk</span></button></div></div>
-    <div class="card settings-section"><h2>Aplicativo no celular</h2><div class="install-note">Salvamento automático ativo. O NEONVAULT pode ser instalado na tela inicial quando estiver hospedado em HTTPS, funcionando com visual de app cyberpunk.</div><button class="btn primary full" id="installApp">📲 Instalar / adicionar à tela inicial</button></div>
+    <div class="card settings-section"><h2>Aplicativo no celular</h2><div class="install-note">Salvamento automático ativo. O NEONVAULT pode ser instalado na tela inicial quando estiver hospedado em HTTPS, funcionando com visual de app.</div><button class="btn primary full" id="installApp">Instalar / adicionar à tela inicial</button></div>
+    <div class="card settings-section"><h2>Atualização do app</h2><div class="small-note">Versão instalada: <strong id="currentAppVersion">v${APP_VERSION}</strong>. Ao abrir o app, ele verifica automaticamente se existe versão nova no GitHub Pages.</div><div style="height:10px"></div><button class="btn primary full" id="checkUpdateBtn">Verificar atualização</button><div style="height:8px"></div><button class="btn ghost full" id="forceReloadBtn">Recarregar e limpar cache</button></div>
     <div class="card settings-section"><h2>Metas por categoria</h2><div id="goalsList">${data.categories.map(c=>`<div class="field"><label>${badge(c.name)} Meta mensal</label><input inputmode="decimal" class="goal-input" data-goal="${escapeHtml(c.name)}" placeholder="R$ 0,00" value="${data.budgetGoals[c.name]?fmt.format(data.budgetGoals[c.name]):''}"></div>`).join('')}</div><button class="btn primary full" id="saveGoals">Salvar metas</button></div>
     <div class="card settings-section"><h2>Categorias</h2><div id="catList">${data.categories.map(c=>catSettingsRow(c)).join('')}</div><div class="inline-fields"><div class="field"><label>Nova categoria</label><input id="newCatName" placeholder="Ex: Pets"></div><div class="field"><label>Cor</label><input id="newCatColor" type="color" value="#95A5A6"></div></div><button class="btn primary full" id="addCategory">+ Nova categoria</button></div>
     <div class="card settings-section"><h2>Classificação 50/30/20</h2>${data.categories.map(c=>`<div class="category-row two"><span>${badge(c.name)}</span><select class="rule-select" data-rulecat="${escapeHtml(c.name)}"><option value="necessidade" ${c.rule==='necessidade'?'selected':''}>Necessidade</option><option value="desejo" ${c.rule==='desejo'?'selected':''}>Desejo</option><option value="investimento" ${c.rule==='investimento'?'selected':''}>Investimento</option><option value="ignorar" ${c.rule==='ignorar'?'selected':''}>Ignorar</option></select></div>`).join('')}<button class="btn primary full" id="saveRules">Salvar classificação</button></div>
@@ -743,6 +749,8 @@ function bindSettings(){
   document.getElementById('importData').onclick=()=>document.getElementById('importFile').click();
   document.getElementById('importFile').onchange=importData;
   document.getElementById('installApp').onclick=installApp;
+  const checkUpdateBtn=document.getElementById('checkUpdateBtn'); if(checkUpdateBtn) checkUpdateBtn.onclick=()=>checkForAppUpdate(true);
+  const forceReloadBtn=document.getElementById('forceReloadBtn'); if(forceReloadBtn) forceReloadBtn.onclick=()=>forceAppReload();
   document.getElementById('resetMonth').onclick=resetCurrentMonth;
   document.getElementById('resetPatrimonio').onclick=resetPatrimonio;
   document.getElementById('wipeData').onclick=()=>{ if(confirm('Apagar todos os dados?')) if(confirm('Confirma mesmo? Essa ação não pode ser desfeita.')){ storage.clear(); location.reload(); } };
@@ -952,6 +960,66 @@ function showManageCategoriesModal(){
 }
 
 
+
+async function checkForAppUpdate(manual=false){
+  if(location.protocol === 'file:'){
+    if(manual) toast('Atualização automática só funciona hospedado em HTTPS','error');
+    return;
+  }
+  try{
+    const url = './version.json?ts=' + Date.now();
+    const res = await fetch(url,{cache:'no-store'});
+    if(!res.ok) throw new Error('version.json indisponível');
+    const remote = await res.json();
+    const remoteVersion = String(remote.version || '').trim();
+    if(!remoteVersion) throw new Error('versão inválida');
+    storage.rawSet(VERSION_KEY, APP_VERSION);
+    if(remoteVersion !== APP_VERSION){
+      if(manual) toast('Nova versão encontrada. Atualizando...');
+      await applyAppUpdate(remoteVersion);
+    } else if(manual){
+      toast('Você já está na versão mais recente');
+    }
+  }catch(err){
+    if(manual) toast('Não consegui verificar atualização agora','error');
+  }
+}
+async function applyAppUpdate(remoteVersion){
+  try{
+    const msg = `Nova versão v${remoteVersion} disponível. O app será atualizado agora.`;
+    toast('Atualizando NEONVAULT...');
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister().catch(()=>{})));
+    }
+    if('caches' in window){
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k).catch(()=>{})));
+    }
+    storage.rawSet(VERSION_KEY, remoteVersion);
+    setTimeout(()=>{
+      const base = location.pathname.replace(/index\.html$/,'');
+      location.replace(base + '?v=' + encodeURIComponent(remoteVersion));
+    },900);
+  }catch(e){
+    toast('Erro ao atualizar. Tente recarregar manualmente.','error');
+  }
+}
+async function forceAppReload(){
+  if(!confirm('Limpar cache do app e recarregar agora? Seus dados financeiros serão mantidos.')) return;
+  try{
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister().catch(()=>{})));
+    }
+    if('caches' in window){
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k).catch(()=>{})));
+    }
+  }catch(e){}
+  location.replace(location.pathname.replace(/index\.html$/,'') + '?refresh=' + Date.now());
+}
+
 function installApp(){
   if(deferredInstallPrompt){
     deferredInstallPrompt.prompt();
@@ -1015,11 +1083,20 @@ window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   deferredInstallPrompt = e;
   const btn = document.getElementById('installApp');
-  if(btn) btn.textContent = '📲 Instalar NEONVAULT neste celular';
+  if(btn) btn.textContent = 'Instalar NEONVAULT neste celular';
 });
 if('serviceWorker' in navigator && location.protocol !== 'file:'){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
+      if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        if(nw) nw.addEventListener('statechange',()=>{
+          if(nw.state==='installed' && navigator.serviceWorker.controller) checkForAppUpdate(false);
+        });
+      });
+    }).catch(()=>{});
+    setTimeout(()=>checkForAppUpdate(false),1800);
   });
 }
 
@@ -1052,7 +1129,7 @@ const __enhancedNeonvaultState = { pinUnlocked:false, onboardingShown:false };
     .insight-item strong{display:block;font-size:13px;margin-bottom:3px}
     .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
     .calendar-head{font-size:11px;font-weight:800;color:var(--texto-secundario);text-align:center;padding-bottom:2px}
-    .calendar-day{aspect-ratio:1/1;min-height:42px;border-radius:14px;padding:6px 4px;background:rgba(255,255,255,.02);border:1px solid rgba(108,242,255,.06);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;font-size:11px;position:relative}
+    .calendar-day{aspect-ratio:1/1;min-height:42px;border-radius:14px;padding:6px 4px;background:rgba(255,255,255,.02);border:1px solid rgba(108,242,255,.06);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;font-size:11px;position:relative;color:var(--texto-principal);font-family:inherit;appearance:none;-webkit-appearance:none;touch-action:manipulation}
     .calendar-day.empty{opacity:.2}
     .calendar-day.today{outline:1px solid rgba(108,242,255,.42);box-shadow:0 0 0 2px rgba(108,242,255,.06)}
     .calendar-day .dots{margin-top:auto;display:flex;gap:3px;flex-wrap:wrap}
@@ -1202,7 +1279,9 @@ function renderMiniCalendar(month=data.currentMonth){
   return `<div class="calendar-grid">${labels.map(l=>`<div class="calendar-head">${l}</div>`).join('')}${cells}</div>`;
 }
 function bindCalendarDays(){
-  document.querySelectorAll('[data-calendar-date]').forEach(btn=>btn.onclick=()=>showCalendarDay(btn.dataset.calendarDate));
+  document.querySelectorAll('[data-calendar-date]').forEach(btn=>{
+    btn.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation(); showCalendarDay(btn.dataset.calendarDate); };
+  });
 }
 function showCalendarDay(date){
   const dayTx = data.transactions.filter(x=>x.date===date).sort((a,b)=>{
@@ -1344,7 +1423,7 @@ function enhanceOverview(){
     <div class="card section-card score-card"><div class="section-head"><h2>Score financeiro NEON</h2><span class="badge-soft">${score.label}</span></div><div class="score-wrap"><div class="score-ring" style="--scoreDeg:${score.score*3.6}deg"><div class="inner">${score.score}</div></div><div><strong style="font-size:18px">${score.label}</strong><p>${score.tip}</p></div></div></div>
     <div class="card section-card"><div class="section-head"><h2>Alertas inteligentes</h2><span class="muted" style="font-size:12px;font-weight:800">Atualizados em tempo real</span></div><div class="insight-list">${alerts.map(a=>`<div class="insight-item"><div class="ico">${a.icon}</div><div><strong>${a.title}</strong><div class="muted">${a.text}</div></div></div>`).join('')}</div></div>
     <div class="card section-card"><div class="section-head"><h2>Cofres e objetivos</h2><button class="btn primary small" id="addGoalBtn">+ Novo cofre</button></div>${renderGoalVaults()}</div>
-    <div class="card section-card"><div class="section-head"><h2>Calendário financeiro</h2><span class="muted" style="font-size:12px;font-weight:800">Receitas, despesas e aportes</span></div>${renderMiniCalendar()}</div>
+    <div class="card section-card"><div class="section-head"><h2>Calendário financeiro</h2><span class="muted" style="font-size:12px;font-weight:800">Receitas, despesas e aportes</span></div><div class="small-note" style="margin:-4px 0 10px">Toque em qualquer dia para abrir os lançamentos e adicionar novos itens nessa data.</div>${renderMiniCalendar()}</div>
     <div class="card section-card"><div class="section-head"><h2>Dinheiro livre mês a mês</h2><span class="muted" style="font-size:12px;font-weight:800">Saldo dos últimos 6 meses</span></div><div class="chart-wrap small"><canvas id="freeBalanceLine"></canvas><div class="chart-tooltip" id="freeTip"></div></div></div>
     <div class="card section-card"><div class="section-head"><h2>Resumo do mês</h2><button class="btn ghost small" id="exportSummaryPdf">Exportar PDF</button></div><div class="month-summary"><div class="summary-box"><strong>Maior gasto</strong><p>${escapeHtml(insight.topExpense)}</p></div><div class="summary-box"><strong>Comparação</strong><p>${escapeHtml(insight.deltaText)}</p></div><div class="summary-box"><strong>Ponto positivo</strong><p>${escapeHtml(insight.best)}</p></div><div class="summary-box"><strong>Atenção</strong><p>${escapeHtml(insight.attention)}</p></div></div></div>
   `);
@@ -1396,6 +1475,23 @@ const __oldShowTransactionModal = showTransactionModal;
 showTransactionModal = function(type, subtype=null, tx=null){ __oldShowTransactionModal(type, subtype, tx); const desc=document.getElementById('txDesc'); const cat=document.getElementById('txCat'); if(desc && cat){ let manual=false; cat.addEventListener('change',()=>manual=true); desc.addEventListener('input',()=>{ const guess=suggestCategory(desc.value); if(guess && !manual && [...cat.options].some(o=>o.value===guess)) cat.value=guess; }); } };
 const __oldRender = render;
 render = function(){ ensureEnhancedData(); __oldRender(); if(data.pinLock?.enabled && !__enhancedNeonvaultState.pinUnlocked){ showPinGate(); } else if(!data.onboardingSeen && !__enhancedNeonvaultState.onboardingShown){ setTimeout(showWelcomeOnboarding, 50); } };
+
+
+// Fallback forte para calendário: funciona mesmo se o PWA usar cache/DOM re-renderizado.
+let __lastCalendarOpen = { date:null, at:0 };
+function handleCalendarDelegatedTap(event){
+  const btn = event.target.closest && event.target.closest('[data-calendar-date]');
+  if(!btn) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const now = Date.now();
+  const date = btn.dataset.calendarDate;
+  if(__lastCalendarOpen.date === date && now - __lastCalendarOpen.at < 650) return;
+  __lastCalendarOpen = { date, at: now };
+  showCalendarDay(date);
+}
+document.addEventListener('click', handleCalendarDelegatedTap, true);
+document.addEventListener('touchend', handleCalendarDelegatedTap, {capture:true, passive:false});
 
 applyDark(); render();
 </script>

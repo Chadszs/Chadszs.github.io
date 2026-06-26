@@ -1,0 +1,9 @@
+NEONVAULT — App de celular (PWA)
+
+1) Hospede esta pasta em um site HTTPS (Netlify, Vercel, GitHub Pages etc.).
+2) Abra o link no celular.
+3) Android/Chrome: toque em Instalar ou no menu ⋮ > Adicionar à tela inicial.
+4) iPhone/Safari: toque em Compartilhar > Adicionar à Tela de Início.
+
+O app salva automaticamente no armazenamento local do aparelho/navegador.
+Use Configurações > Backup para exportar seus dados JSON antes de trocar de celular, limpar cache ou reinstalar.

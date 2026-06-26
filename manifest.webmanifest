@@ -1,13 +1,13 @@
 {
-  "name": "NEONVAULT Planejador Financeiro",
-  "short_name": "NEONVAULT",
-  "description": "Planejador financeiro pessoal com visual cyberpunk, orçamento, investimentos, patrimônio, backup e reset.",
+  "name": "Upcash - Controle Financeiro Inteligente",
+  "short_name": "Upcash",
+  "description": "Controle financeiro inteligente com login local por usuário, IA offline, orçamento, investimentos, patrimônio, dívidas, busca e temas profissionais.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#070B14",
-  "theme_color": "#0B1020",
+  "background_color": "#071426",
+  "theme_color": "#071426",
   "lang": "pt-BR",
   "icons": [
     {

@@ -1,5 +1,5 @@
-const APP_VERSION = '1.1.1';
-const CACHE_NAME = `neonvault-mobile-v${APP_VERSION}`;
+const APP_VERSION = '1.5.0';
+const CACHE_NAME = `upcash-mobile-v${APP_VERSION}`;
 const ASSETS = [
   './',
   './index.html',
@@ -21,7 +21,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME && (k.includes('neonvault') || k.includes('upcash'))).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
